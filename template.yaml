@@ -45,7 +45,7 @@ Resources:
     Type: AWS::Serverless::Function 
     Properties:
       CodeUri: getSignedURL/
-      Handler: app_params.handler
+      Handler: app_param.handler
       Runtime: nodejs16.x
       Timeout: 3
       MemorySize: 128
