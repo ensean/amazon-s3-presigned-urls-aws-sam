@@ -18,7 +18,26 @@ Resources:
         AllowHeaders:
           - "*"   
         AllowOrigins: 
-          - "*"      
+          - "*"
+      Auth:
+        DefaultAuthorizer: MyLambdaRequestAuth
+        Authorizers:
+          MyLambdaRequestAuth:
+            FunctionArn:
+              Fn::GetAtt:
+                - UploadRequestAuthFunction
+                - Arn
+            FunctionInvokeRole:
+              Fn::GetAtt:
+                - RoleAuthFuncInvoke
+                - Arn
+            Identity:
+              QueryStrings:
+                - key
+                - token
+            AuthorizerPayloadFormatVersion: 2.0
+            EnableSimpleResponses: true
+
 
   ## Lambda functions
   UploadRequestFunction:
@@ -26,7 +45,7 @@ Resources:
     Type: AWS::Serverless::Function 
     Properties:
       CodeUri: getSignedURL/
-      Handler: app.handler
+      Handler: app_params.handler
       Runtime: nodejs16.x
       Timeout: 3
       MemorySize: 128
@@ -50,6 +69,31 @@ Resources:
             Path: /uploads
             Method: get
             ApiId: !Ref MyApi  
+
+  UploadRequestAuthFunction:
+    # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: lambda_auth/
+      Handler: lambda_md5_check.lambda_handler
+      Runtime: python3.11
+      Timeout: 3
+      MemorySize: 128
+  
+  RoleAuthFuncInvoke:
+      Type: "AWS::IAM::Role"
+      Properties:
+        RoleName: RoleAuthFuncInvoke
+        Description: !Sub "DO NOT DELETE - Used by Role Creation Service. Created by CloudFormation ${AWS::StackId}"
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: "apigateway.amazonaws.com"
+              Action: "sts:AssumeRole"
+        ManagedPolicyArns:
+          - !Sub "arn:aws:iam::aws:policy/AWSLambda_FullAccess"  
 
   ## S3 bucket
   S3UploadBucket:
